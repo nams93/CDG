@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useTransition, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,8 +12,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { AgentSelector } from "@/components/agent-selector"
 import { type Agent, saveEvaluation } from "@/app/actions"
-import { Loader2, Save, Printer, RotateCcw } from "lucide-react"
+import { Loader2, Save, RotateCcw } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import Image from "next/image"
+import { PrintEvaluation } from "@/components/print-evaluation"
 
 interface EvaluationFormProps {
   agents: Agent[]
@@ -22,7 +24,9 @@ interface EvaluationFormProps {
 
 export default function EvaluationForm({ agents, evaluateurs }: EvaluationFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
+  const printRef = useRef<HTMLDivElement>(null)
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [agentId, setAgentId] = useState("")
@@ -31,6 +35,20 @@ export default function EvaluationForm({ agents, evaluateurs }: EvaluationFormPr
 
   // État pour stocker les évaluations de compétences
   const [competences, setCompetences] = useState<Record<string, string>>({})
+
+  // Récupérer les paramètres d'URL pour pré-sélectionner l'agent et l'évaluateur
+  useEffect(() => {
+    const agentIdParam = searchParams.get("agentId")
+    const evaluateurIdParam = searchParams.get("evaluateurId")
+
+    if (agentIdParam) {
+      setAgentId(agentIdParam)
+    }
+
+    if (evaluateurIdParam) {
+      setEvaluateurId(evaluateurIdParam)
+    }
+  }, [searchParams])
 
   const competencesList = [
     { id: "1", label: "Participation à la préparation de la mission : badges, clefs accès, codes" },
@@ -105,176 +123,232 @@ export default function EvaluationForm({ agents, evaluateurs }: EvaluationFormPr
     })
   }
 
+  // Trouver les objets agent et évaluateur sélectionnés
+  const selectedAgent = agents.find((a) => a.id === agentId)
+  const selectedEvaluateur = evaluateurs.find((e) => e.id === evaluateurId)
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-      <Card className="mb-6 border-0 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between bg-[#0a2158] text-white p-4">
-          <div className="flex items-center">
-            <div className="bg-white p-2 rounded mr-4">
-              <img src="/gpis-gie-logo.png" alt="GPIS GIE" className="h-10" />
-            </div>
-          </div>
-          <h1 className="text-xl font-bold text-center">ÉVALUATION AGENT D'EXPLOITATION (ASM)</h1>
-          <div className="w-[120px]"></div> {/* Spacer for alignment */}
-        </CardHeader>
-      </Card>
-
-      <Card className="mb-6">
-        <CardContent className="p-4 grid gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date" className="font-bold mb-2 block">
-                DATE D'ÉVALUATION
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-white"
-              />
-            </div>
-
-            <div className="flex items-center justify-end">
-              <div className="flex flex-col items-end">
-                <div className="bg-[#0a2158] text-white px-4 py-2 rounded-lg mb-2">
-                  <span className="block text-sm">Score total</span>
-                  <span className="text-2xl font-bold">
-                    {totalScore}/{maxPossibleScore}
-                  </span>
+    <>
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto print-container">
+        <div ref={printRef}>
+          <Card className="mb-6 border-0 shadow-none">
+            <CardHeader className="flex flex-row items-center justify-between bg-[#0a2158] text-white p-4">
+              <div className="flex items-center">
+                <div className="bg-white p-2 rounded mr-4">
+                  <Image src="/gpis-gie-logo.png" alt="GPIS GIE" width={100} height={40} />
                 </div>
-                <div
-                  className={`px-4 py-2 rounded-lg ${
-                    scorePercentage >= 70
-                      ? "bg-green-100 text-green-800"
-                      : scorePercentage >= 40
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  <span className="block text-sm">Pourcentage</span>
-                  <span className="text-2xl font-bold">{scorePercentage}%</span>
+              </div>
+              <h1 className="text-xl font-bold text-center">ÉVALUATION AGENT D'EXPLOITATION (ASM)</h1>
+              <div className="w-[120px]"></div> {/* Spacer for alignment */}
+            </CardHeader>
+          </Card>
+
+          <Card className="mb-6">
+            <CardContent className="p-4 grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="date" className="font-bold mb-2 block">
+                    DATE D'ÉVALUATION
+                  </Label>
+                  <div className="print:hidden">
+                    <Input
+                      id="date"
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="hidden print:block">
+                    {new Date(date).toLocaleDateString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </div>
                 </div>
+
+                <div className="flex items-center justify-end">
+                  <div className="flex flex-col items-end">
+                    <div className="bg-[#0a2158] text-white px-4 py-2 rounded-lg mb-2 score-total">
+                      <span className="block text-sm">Score total</span>
+                      <span className="text-2xl font-bold">
+                        {totalScore}/{maxPossibleScore}
+                      </span>
+                    </div>
+                    <div
+                      className={`px-4 py-2 rounded-lg ${
+                        scorePercentage >= 70
+                          ? "bg-green-100 text-green-800 score-percentage-high"
+                          : scorePercentage >= 40
+                            ? "bg-yellow-100 text-yellow-800 score-percentage-medium"
+                            : "bg-red-100 text-red-800 score-percentage-low"
+                      }`}
+                    >
+                      <span className="block text-sm">Pourcentage</span>
+                      <span className="text-2xl font-bold">{scorePercentage}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="agent" className="font-bold mb-2 block">
+                  AGENT ÉVALUÉ
+                </Label>
+                <div className="print:hidden">
+                  <AgentSelector
+                    agents={agents.filter((a) => a.role === "agent")}
+                    value={agentId}
+                    onChange={setAgentId}
+                    placeholder="Sélectionner l'agent à évaluer..."
+                  />
+                </div>
+                <div className="hidden print:block">
+                  {selectedAgent
+                    ? `${selectedAgent.nom} ${selectedAgent.prenom} (${selectedAgent.matricule})`
+                    : "Non sélectionné"}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="evaluateur" className="font-bold mb-2 block">
+                  ÉVALUATEUR
+                </Label>
+                <div className="print:hidden">
+                  <AgentSelector
+                    agents={evaluateurs}
+                    value={evaluateurId}
+                    onChange={setEvaluateurId}
+                    placeholder="Sélectionner l'évaluateur..."
+                  />
+                </div>
+                <div className="hidden print:block">
+                  {selectedEvaluateur
+                    ? `${selectedEvaluateur.nom} ${selectedEvaluateur.prenom} (${selectedEvaluateur.matricule})`
+                    : "Non sélectionné"}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardHeader className="bg-[#0a2158] text-white p-4">
+              <h2 className="text-lg font-bold text-center">ÉVALUATION DES COMPÉTENCES</h2>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border p-2 w-8 text-center">#</th>
+                      <th className="border p-2 text-left">Compétence</th>
+                      <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
+                        <div>Non maîtrisé</div>
+                        <div className="font-bold">0</div>
+                      </th>
+                      <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
+                        <div>En cours d'acquisition</div>
+                        <div className="font-bold">1</div>
+                      </th>
+                      <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
+                        <div>Partiellement acquis</div>
+                        <div className="font-bold">2</div>
+                      </th>
+                      <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
+                        <div>Maîtrisé</div>
+                        <div className="font-bold">3</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {competencesList.map((competence) => (
+                      <tr key={competence.id}>
+                        <td className="border p-2 text-center">{competence.id}</td>
+                        <td className="border p-2">{competence.label}</td>
+                        {[0, 1, 2, 3].map((value) => (
+                          <td key={value} className="border p-2 text-center">
+                            <div className="print:hidden">
+                              <RadioGroup
+                                value={competences[competence.id] || ""}
+                                onValueChange={(value) => handleCompetenceChange(competence.id, value)}
+                                className="flex justify-center"
+                              >
+                                <RadioGroupItem
+                                  value={value.toString()}
+                                  id={`competence-${competence.id}-${value}`}
+                                  className="h-5 w-5"
+                                />
+                              </RadioGroup>
+                            </div>
+                            <div className="hidden print:block">
+                              {competences[competence.id] === value.toString() && (
+                                <div className="h-4 w-4 rounded-full bg-[#0a2158] mx-auto" />
+                              )}
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardHeader className="bg-[#0a2158] text-white p-4">
+              <h2 className="text-lg font-bold text-center">OBSERVATION GÉNÉRALE</h2>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="print:hidden">
+                <Textarea
+                  value={generalObservation}
+                  onChange={(e) => setGeneralObservation(e.target.value)}
+                  className="min-h-[200px] w-full"
+                  placeholder="Saisissez vos observations ici..."
+                />
+              </div>
+              <div className="hidden print:block min-h-[200px] border p-4 rounded-md whitespace-pre-wrap">
+                {generalObservation || "Aucune observation"}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="hidden print:block mt-8 pt-8 border-t">
+            <div className="grid grid-cols-2 gap-8">
+              <div>
+                <p className="font-bold mb-2">Signature de l'agent évalué :</p>
+                <div className="h-20 border rounded-md"></div>
+              </div>
+              <div>
+                <p className="font-bold mb-2">Signature de l'évaluateur :</p>
+                <div className="h-20 border rounded-md"></div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div>
-            <Label htmlFor="agent" className="font-bold mb-2 block">
-              AGENT ÉVALUÉ
-            </Label>
-            <AgentSelector
-              agents={agents.filter((a) => a.role === "agent")}
-              value={agentId}
-              onChange={setAgentId}
-              placeholder="Sélectionner l'agent à évaluer..."
-            />
+        <div className="flex flex-wrap justify-between gap-4 mt-6 print:hidden">
+          <Button type="button" variant="outline" className="flex-1" onClick={() => window.location.reload()}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Réinitialiser
+          </Button>
+          <Button type="submit" className="flex-1 bg-[#0a2158] hover:bg-[#0a2158]/90" disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" /> Enregistrer
+              </>
+            )}
+          </Button>
+          <div className="flex-1">
+            <PrintEvaluation printRef={printRef} />
           </div>
-
-          <div>
-            <Label htmlFor="evaluateur" className="font-bold mb-2 block">
-              ÉVALUATEUR
-            </Label>
-            <AgentSelector
-              agents={evaluateurs}
-              value={evaluateurId}
-              onChange={setEvaluateurId}
-              placeholder="Sélectionner l'évaluateur..."
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader className="bg-[#0a2158] text-white p-4">
-          <h2 className="text-lg font-bold text-center">ÉVALUATION DES COMPÉTENCES</h2>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border p-2 w-8 text-center">#</th>
-                  <th className="border p-2 text-left">Compétence</th>
-                  <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
-                    <div>Non maîtrisé</div>
-                    <div className="font-bold">0</div>
-                  </th>
-                  <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
-                    <div>En cours d'acquisition</div>
-                    <div className="font-bold">1</div>
-                  </th>
-                  <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
-                    <div>Partiellement acquis</div>
-                    <div className="font-bold">2</div>
-                  </th>
-                  <th className="border p-2 w-24 bg-[#d6e4f2] text-center">
-                    <div>Maîtrisé</div>
-                    <div className="font-bold">3</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {competencesList.map((competence) => (
-                  <tr key={competence.id}>
-                    <td className="border p-2 text-center">{competence.id}</td>
-                    <td className="border p-2">{competence.label}</td>
-                    {[0, 1, 2, 3].map((value) => (
-                      <td key={value} className="border p-2 text-center">
-                        <RadioGroup
-                          value={competences[competence.id] || ""}
-                          onValueChange={(value) => handleCompetenceChange(competence.id, value)}
-                          className="flex justify-center"
-                        >
-                          <RadioGroupItem
-                            value={value.toString()}
-                            id={`competence-${competence.id}-${value}`}
-                            className="h-5 w-5"
-                          />
-                        </RadioGroup>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader className="bg-[#0a2158] text-white p-4">
-          <h2 className="text-lg font-bold text-center">OBSERVATION GÉNÉRALE</h2>
-        </CardHeader>
-        <CardContent className="p-4">
-          <Textarea
-            value={generalObservation}
-            onChange={(e) => setGeneralObservation(e.target.value)}
-            className="min-h-[200px] w-full"
-            placeholder="Saisissez vos observations ici..."
-          />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap justify-between gap-4">
-        <Button type="button" variant="outline" className="flex-1" onClick={() => window.location.reload()}>
-          <RotateCcw className="mr-2 h-4 w-4" /> Réinitialiser
-        </Button>
-        <Button type="submit" className="flex-1 bg-[#0a2158] hover:bg-[#0a2158]/90" disabled={isPending}>
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" /> Enregistrer
-            </>
-          )}
-        </Button>
-        <Button type="button" variant="secondary" className="flex-1" onClick={() => window.print()}>
-          <Printer className="mr-2 h-4 w-4" /> Imprimer
-        </Button>
-      </div>
-    </form>
+        </div>
+      </form>
+    </>
   )
 }

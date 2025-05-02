@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import Link from "next/link"
+import Image from "next/image"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,7 +25,7 @@ export default function RootLayout({
           <div className="container flex items-center justify-between">
             <Link href="/" className="flex items-center">
               <div className="bg-white p-1 rounded mr-4">
-                <img src="/gpis-gie-logo.png" alt="GPIS GIE" className="h-8" />
+                <Image src="/gpis-gie-logo.png" alt="GPIS GIE" width={100} height={40} priority />
               </div>
               <h1 className="text-xl font-bold">Système d'Évaluation</h1>
             </Link>

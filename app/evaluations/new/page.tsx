@@ -3,11 +3,19 @@ import EvaluationForm from "@/components/evaluation-form"
 import AgentForm from "@/components/agent-form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default async function NewEvaluationPage() {
+export default async function NewEvaluationPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string; agentId?: string; evaluateurId?: string }
+}) {
   const agents = await getAgents()
   const evaluateurs = await getAgents("evaluateur")
   const agentsCount = agents.filter((a) => a.role === "agent").length
   const evaluateursCount = evaluateurs.length
+
+  // Déterminer l'onglet actif en fonction des paramètres ou de l'état du système
+  const activeTab =
+    searchParams.tab || (agentsCount === 0 || evaluateursCount === 0 ? "ajouter-agent" : "nouvelle-evaluation")
 
   return (
     <div className="container py-6">
@@ -27,30 +35,30 @@ export default async function NewEvaluationPage() {
 
           <AgentForm />
         </div>
-      ) : null}
+      ) : (
+        <Tabs defaultValue={activeTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="nouvelle-evaluation">Nouvelle évaluation</TabsTrigger>
+            <TabsTrigger value="ajouter-agent">Ajouter un agent</TabsTrigger>
+          </TabsList>
 
-      <Tabs defaultValue={agentsCount === 0 || evaluateursCount === 0 ? "ajouter-agent" : "nouvelle-evaluation"}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="nouvelle-evaluation">Nouvelle évaluation</TabsTrigger>
-          <TabsTrigger value="ajouter-agent">Ajouter un agent</TabsTrigger>
-        </TabsList>
+          <TabsContent value="nouvelle-evaluation">
+            {agentsCount > 0 && evaluateursCount > 0 ? (
+              <EvaluationForm agents={agents} evaluateurs={evaluateurs} />
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-amber-800">
+                  Veuillez d'abord ajouter au moins un agent et un évaluateur avant de créer une évaluation.
+                </p>
+              </div>
+            )}
+          </TabsContent>
 
-        <TabsContent value="nouvelle-evaluation">
-          {agentsCount > 0 && evaluateursCount > 0 ? (
-            <EvaluationForm agents={agents} evaluateurs={evaluateurs} />
-          ) : (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-amber-800">
-                Veuillez d'abord ajouter au moins un agent et un évaluateur avant de créer une évaluation.
-              </p>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="ajouter-agent">
-          <AgentForm />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="ajouter-agent">
+            <AgentForm />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   )
 }

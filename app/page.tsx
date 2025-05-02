@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ClipboardList, Users, BarChart, UserPlus } from "lucide-react"
+import { ClipboardList, Users, BarChart, UserPlus, ShieldAlert } from "lucide-react"
 import { getAgents } from "@/app/actions"
 
 export default async function HomePage() {
@@ -11,10 +11,27 @@ export default async function HomePage() {
 
   return (
     <div className="container py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">Système d'Évaluation GPIS</h1>
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold mb-4">Bienvenue au Système d'Évaluation GPIS</h1>
         <p className="text-xl text-muted-foreground">Gérez et suivez les évaluations des agents d'exploitation</p>
       </div>
+
+      <Card className="mb-8 border-l-4 border-l-[#0a2158]">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="bg-amber-100 p-2 rounded-full">
+              <ShieldAlert className="h-6 w-6 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Accès restreint</h2>
+              <p className="text-muted-foreground">
+                Ce système est exclusivement réservé à la Direction des Opérations (DirOps). Toute utilisation non
+                autorisée est strictement interdite.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {agentsCount === 0 || evaluateursCount === 0 ? (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8 text-center">

@@ -48,3 +48,100 @@
     --ring: 224.3 76.3% 48%;
   }
 }
+
+/* Styles spécifiques pour l'impression */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    background-color: white !important;
+  }
+
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  header,
+  nav,
+  footer,
+  .print:hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-break-after {
+    break-after: page;
+  }
+
+  .print-break-before {
+    break-before: page;
+  }
+
+  /* Assurer que les couleurs d'arrière-plan sont imprimées */
+  .bg-\[\#0a2158\] {
+    background-color: #0a2158 !important;
+    color: white !important;
+  }
+
+  .bg-\[\#d6e4f2\] {
+    background-color: #d6e4f2 !important;
+  }
+
+  .bg-\[\#ffc266\] {
+    background-color: #ffc266 !important;
+  }
+
+  /* Assurer que les tableaux sont bien formatés */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+
+  /* Styles pour les scores */
+  .score-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .score-box {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    margin-left: 0.5rem;
+  }
+
+  .score-total {
+    background-color: #0a2158 !important;
+    color: white !important;
+  }
+
+  .score-percentage-high {
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+  }
+
+  .score-percentage-medium {
+    background-color: #fef9c3 !important;
+    color: #854d0e !important;
+  }
+
+  .score-percentage-low {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+  }
+}
